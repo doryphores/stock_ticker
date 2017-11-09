@@ -1,0 +1,30 @@
+#! /usr/bin/env ruby
+
+require File.expand_path('./lib/process_manager', __dir__)
+
+BUS = Bus.new
+
+Thread.abort_on_exception = true
+
+thread = Thread.new do
+  ProcessManager.new(BUS).run
+end
+
+BUS.publish(Messages::PositionAcquired.new(100))
+
+while input = ARGF.gets do
+  input.each_line do |line|
+    case line.chomp
+    when /^remove10 (\d+)$/
+      BUS.publish(Messages::RemoveFrom10SecondWindow.new($1.to_i))
+    when /^remove15 (\d+)$/
+      BUS.publish(Messages::RemoveFrom15SecondWindow.new($1.to_i))
+    when /^\d+$/
+      BUS.publish(Messages::PriceUpdated.new(line.chomp.to_i))
+    else
+      puts 'SHUT UP!'
+    end
+  end
+end
+
+thread.join
